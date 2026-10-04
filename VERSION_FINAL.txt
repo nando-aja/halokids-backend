@@ -1,0 +1,25 @@
+HaloKids Backend - Final Scope Package
+Version: FINAL-100-SCOPE
+Date: 2026-10-04
+Basis: HaloKidsBackend_FINAL_100 (latest user-supplied backend)
+
+Includes:
+- FastAPI + MySQL + SQLAlchemy
+- JWT + bcrypt + RBAC (masyarakat, pengelola-panti, admin)
+- Modules A-F
+- Local file storage with public/private separation
+- COTA/adoption eligibility and document workflow
+- Local OCR/NLP document assistant
+- In-house Custom Agentic AI public chatbot (no external AI API)
+- Emergency triage for chatbot
+- Public statistics
+- Donation money + goods linked to panti wishlist
+- Donation goods migration
+- Admin/panti secure file access
+- Static admin-managed visit/open-house calendar
+- Notifications
+- Automated tests and validation documentation
+
+Important:
+This package does not include the project's real .env, venv, or private uploaded documents.
+Run the final Windows + MySQL + Tesseract smoke test on the project machine.
