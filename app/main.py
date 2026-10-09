@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.routes import admin, ai, auth, masyarakat, panti, public, upload
+from app.api.routes import admin, auth, masyarakat, panti, public, upload
 from app.core.config import settings
 from app.db.database import engine
 
@@ -23,7 +23,6 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(public.router, prefix="/api/public", tags=["Public"])
-app.include_router(ai.router, prefix="/api/public/ai", tags=["Public AI Agent"])
 app.include_router(masyarakat.router, prefix="/api/masyarakat", tags=["Masyarakat"])
 app.include_router(panti.router, prefix="/api/panti", tags=["Pengelola Panti"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin Dinsos"])
@@ -35,8 +34,7 @@ def read_root() -> dict[str, str]:
     return {
         "message": "HaloKids API berhasil berjalan",
         "docs": "/docs",
-        "ai_chat": "/api/public/ai/chat",
-    }
+        }
 
 
 @app.get("/cek-db")

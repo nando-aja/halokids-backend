@@ -1,39 +1,102 @@
-# Validation Report - HaloKids Backend Final
+# Validation Report - HaloKids Backend Tanpa Chatbot
 
-## Pemeriksaan otomatis terbaru
+## 1. Tujuan
 
-- `python3 -m compileall -q app scripts tests`: **PASS**
-- Route registration melalui `scripts/verify_backend.py`: **89 routes terdaftar**, termasuk `/api/public/ai/chat` dan `/api/public/statistics`.
-- Static scan import AI eksternal (`openai`, `anthropic`, `google.generativeai`): **tidak ditemukan** pada package `app/`.
-- Test suite terpilih: **35 passed** (`test_agentic_chat.py`, `test_backend_fixes.py`, `test_scope_completion.py`, `test_scope_api.py`).
-- Coverage test mencakup: intent emergency/report, memory session, OCR name extraction, nominal transfer, kalender admin/public, file privacy, donation flow, donasi barang + pemenuhan wishlist, statistik publik, dan role access.
+Dokumen ini digunakan untuk memvalidasi HaloKids Backend setelah fitur chatbot publik dihapus.
 
-## Catatan lingkungan validasi
+Penghapusan chatbot tidak boleh mengganggu autentikasi, pengajuan adopsi, analisis dokumen, OCR, analisis bukti transfer, pengaduan, donasi, relawan, pengelolaan panti, dan statistik publik.
 
-Pada environment validasi ini, package `python-jose` dan `passlib` tidak tersedia sehingga pengujian dijalankan dengan stub lokal yang hanya menyediakan interface minimal untuk JWT/password. Stub tersebut **tidak ikut dimasukkan ke ZIP final**.
+## 2. Perubahan yang Dilakukan
 
-Karena itu, sebelum digunakan pada komputer project, tetap jalankan:
+Perubahan yang perlu diperiksa:
+
+- Router chatbot dihapus dari pendaftaran router pada `app/main.py`.
+- File route chatbot `app/api/routes/ai.py` dihapus.
+- Schema chatbot `app/schemas/ai_chat.py` dihapus.
+- Service chatbot `app/services/agentic_chat.py` dihapus setelah seluruh referensinya dibersihkan.
+- Referensi chatbot di dokumentasi diperbarui atau dihapus.
+- Pemanggilan endpoint chatbot pada frontend dihapus jika ada.
+- Service `app/services/ai_service.py` tetap dipertahankan untuk kebutuhan OCR dan analisis dokumen.
+
+## 3. Pemeriksaan Source Code
+
+Jalankan pemeriksaan sintaks:
 
 ```powershell
-python --version
-pip install -r requirements.txt
-pytest tests
+python -m compileall -q app scripts tests
+```
+
+Periksa apakah masih ada referensi ke chatbot:
+
+```powershell
+Get-ChildItem app,tests -Recurse -File |
+Select-String -Pattern "agentic_chat|AIChatRequest|AIChatResponse|api/public/ai/chat|api/public/ai/health"
+```
+
+Periksa hasil pencarian secara manual. Referensi pada dokumentasi historis atau pengujian yang memang sedang dihapus perlu ditangani, sedangkan referensi pada modul aktif tidak boleh dibiarkan jika menyebabkan import error.
+
+## 4. Pemeriksaan Endpoint
+
+Jalankan backend:
+
+```powershell
 uvicorn app.main:app --reload
 ```
 
-## Verifikasi akhir yang harus dilakukan di mesin project
+Buka:
 
-Project target menggunakan Windows + MySQL + Tesseract. Jalankan pengujian dengan environment tersebut sebelum presentasi. Untuk database lama `halokids_db`, lakukan backup terlebih dahulu dan kemudian cek migration dengan:
+`http://127.0.0.1:8000/docs`
+
+Kriteria pemeriksaan:
+
+- Server berjalan tanpa import error.
+- Endpoint chatbot tidak lagi terdaftar.
+- Endpoint publik direktori panti tetap tersedia.
+- Endpoint pengaduan dan statistik publik tetap tersedia.
+- Endpoint autentikasi, adopsi, donasi, dan upload tetap tersedia sesuai konfigurasi project.
+
+## 5. Pemeriksaan AI Internal
+
+Pastikan `app/services/ai_service.py` tetap tersedia jika masih digunakan oleh fitur berikut:
+
+- Ekstraksi teks dari PDF atau gambar.
+- OCR dokumen.
+- Ekstraksi informasi dokumen.
+- Pencocokan nama dan tanggal dengan data pengajuan.
+- Analisis nominal pada bukti transfer.
+- Peninjauan manual atas hasil analisis.
+
+OCR dan pencocokan nominal tidak boleh dianggap sebagai bukti mutlak keaslian dokumen atau keberhasilan transaksi.
+
+## 6. Pengujian Otomatis
+
+Jalankan:
 
 ```powershell
-alembic current
-alembic upgrade head
+pytest tests
 ```
 
-Migration `50e66424d641` hanya menambahkan kolom/index/foreign key yang dibutuhkan untuk donasi barang; migration baseline menggunakan `checkfirst=True` sehingga tidak dimaksudkan untuk menghapus data yang sudah ada.
+Catat hasil aktual:
 
-Tesseract OCR diperlukan untuk gambar/PDF scan. Atur `TESSERACT_CMD` pada `.env` bila executable tidak berada di lokasi Windows umum.
+- Pemeriksaan sintaks: belum divalidasi pada versi setelah penghapusan chatbot.
+- Registrasi endpoint: belum divalidasi pada versi setelah penghapusan chatbot.
+- Pengujian otomatis: belum divalidasi pada versi setelah penghapusan chatbot.
+- Integrasi MySQL dan Tesseract pada Windows: perlu diuji pada komputer project.
 
-## Status
+Hasil pengujian lama tidak boleh dianggap sebagai hasil pengujian versi terbaru.
 
-Tidak ada kegagalan yang terdeteksi dari pemeriksaan source/route dan 35 test terpilih pada harness validasi ini. Namun tidak ada dasar yang jujur untuk menjamin “bebas bug sekecil apa pun” sebelum dependency nyata, MySQL, Windows, Tesseract, dan frontend dijalankan bersama.
+## 7. Pemeriksaan Database dan File
+
+- Pastikan database `halokids_db` tetap dapat diakses.
+- Pastikan tidak ada tabel yang terhapus akibat perubahan chatbot.
+- Pastikan file upload lama tetap tersedia.
+- Pastikan autentikasi dan hak akses setiap role tetap berfungsi.
+- Pastikan konfigurasi `.env` tetap benar.
+
+Penghapusan chatbot tidak dengan sendirinya memerlukan perubahan struktur database.
+
+## 8. Status Validasi
+
+Status akhir: menunggu pengujian setelah perubahan diterapkan.
+
+Penghapusan chatbot dapat dinyatakan selesai setelah seluruh referensi aktif dibersihkan, backend berhasil dijalankan, endpoint yang diperlukan tetap berfungsi, dan pengujian fitur yang dipertahankan berhasil dilakukan.

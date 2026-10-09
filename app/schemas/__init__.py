@@ -7,7 +7,6 @@ from app.schemas.adoption import (
     AdoptionStatus,
     AdditionalDocumentType,
 )
-from app.schemas.ai_chat import AIChatRequest, AIChatResponse
 from app.schemas.auth import TokenResponse
 from app.schemas.calendar import VisitEventCreate, VisitEventResponse, VisitEventUpdate
 from app.schemas.dana import DanaResponse
@@ -25,7 +24,6 @@ __all__ = [
     "AdoptionAdditionalDocument", "AdoptionBase", "AdoptionCreate",
     "AdoptionEligibilityResponse", "AdoptionResponse", "AdoptionStatus",
     "AdditionalDocumentType",
-    "AIChatRequest", "AIChatResponse",
     "TokenResponse",
     "VisitEventCreate", "VisitEventResponse", "VisitEventUpdate",
     "DanaResponse",

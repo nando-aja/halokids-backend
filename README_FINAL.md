@@ -1,37 +1,41 @@
-# HaloKids Backend - Final Lengkap
+# HaloKids Backend
 
-Paket ini menggunakan 10 tabel inti HaloKids, FastAPI + MySQL, JWT/bcrypt, local file storage, dua alur AI internal, dan chatbot Custom Agentic AI publik.
+Paket ini menggunakan 10 tabel inti HaloKids, FastAPI + MySQL, JWT/bcrypt, local file storage, serta layanan AI internal untuk analisis dokumen dan bukti transfer. Fitur chatbot publik tidak termasuk dalam versi ini.
 
 ## Role
-- `masyarakat`: layanan publik setelah login: COTA/adopsi, donasi, pengaduan, relawan, notifikasi, profil.
-- `pengelola-panti`: hanya mengelola panti yang ditugaskan: data operasional, wishlist, donasi, laporan dana, galeri, notifikasi.
-- `admin`: Admin Dinsos: user/role, seluruh panti, pengaduan, COTA, verifikasi AI, donasi, relawan, kalender, laporan pengawasan, notifikasi, statistik.
-- Guest bukan role database; Guest menggunakan endpoint publik tanpa JWT.
 
-## AI internal
-Tidak ada OpenAI, Gemini, Claude, Anthropic, atau API AI eksternal.
+- `masyarakat`: layanan publik setelah login, meliputi COTA/adopsi, donasi, pengaduan, relawan, notifikasi, dan profil.
+- `pengelola-panti`: mengelola panti yang ditugaskan, termasuk data operasional, wishlist, donasi, laporan dana, galeri, dan notifikasi.
+- `admin`: Admin Dinsos yang mengelola pengguna, seluruh panti, pengaduan, COTA, verifikasi dokumen, donasi, relawan, kalender, laporan pengawasan, notifikasi, dan statistik.
+- Guest bukan role database. Guest menggunakan endpoint publik tanpa JWT.
 
-### Agent dokumen
-`app/services/ai_service.py` melakukan: PDF/image extraction, OCR, field extraction, validasi karakteristik dokumen, matching nama/tanggal dengan data pengajuan, nominal transfer matching, anomaly detection, dan human-in-the-loop.
+## AI Internal
 
-### Agent chatbot
-`app/services/agentic_chat.py` melakukan: intent detection, entity extraction, memory sesi pendek, tool selection, query database, business rule kelayakan adopsi, emergency triage, dan response generation.
+Layanan AI internal menggunakan `app/services/ai_service.py`. Layanan ini tidak memerlukan chatbot dan tidak menggunakan OpenAI, Gemini, Claude, Anthropic, atau API AI generatif eksternal.
 
-Endpoint:
-- `GET /api/public/ai/health`
-- `POST /api/public/ai/chat`
+### Analisis dokumen
+
+`app/services/ai_service.py` mendukung pemrosesan PDF/gambar, OCR, ekstraksi informasi dokumen, pemeriksaan karakteristik dokumen, pencocokan nama dan tanggal dengan data pengajuan, serta dukungan peninjauan manual.
+
+### Analisis bukti transfer
+
+Layanan mendukung ekstraksi teks dari bukti transfer, pembacaan nominal, dan pencocokan nominal dengan nilai yang diharapkan. Hasil analisis tetap perlu mengikuti proses verifikasi yang berlaku.
+
+Catatan: OCR dan pencocokan data tidak menjamin keaslian dokumen atau keberhasilan transaksi secara otomatis.
 
 ## Modul
-- Direktori panti + wishlist + galeri + laporan dana + laporan pengawasan publik.
-- COTA/adopsi + kelayakan + dokumen awal/tambahan + OCR + review manual.
-- Pengaduan anonim/login + kode tiket + status + notifikasi.
-- Donasi uang + bukti transfer + analisis nominal.
-- Donasi barang + wishlist + nama/jumlah/satuan + estimasi antar + pemenuhan wishlist saat terverifikasi; validasi mencegah nama barang ganda ketika wishlist dipilih.
-- Relawan + identitas + verifikasi.
-- Kalender kunjungan/open house yang dikelola admin secara file JSON.
-- Dashboard/statistik admin dan statistik publik yang hanya memakai data yang tersedia.
 
-## Endpoint penting publik
+- Direktori panti, wishlist, galeri, laporan dana, dan laporan pengawasan publik.
+- COTA/adopsi, pemeriksaan kelayakan awal, dokumen awal/tambahan, OCR, dan peninjauan manual.
+- Pengaduan anonim/login, kode tiket, status pengaduan, dan notifikasi.
+- Donasi uang, bukti transfer, dan analisis nominal.
+- Donasi barang, wishlist, nama/jumlah/satuan, estimasi antar, dan pemenuhan wishlist setelah donasi diverifikasi.
+- Relawan, identitas, dan verifikasi.
+- Kalender kunjungan/open house yang dikelola admin melalui file JSON.
+- Dashboard admin, statistik admin, dan statistik publik berdasarkan data yang tersedia.
+
+## Endpoint Penting Publik
+
 - `GET /api/public/panti`
 - `GET /api/public/panti/{id}`
 - `GET /api/public/panti/{id}/wishlist`
@@ -44,20 +48,31 @@ Endpoint:
 - `GET /api/public/kalender-kunjungan`
 - `GET /api/public/files/{folder}/{filename}` untuk folder publik saja
 
+Endpoint chatbot `/api/public/ai/chat` dan `/api/public/ai/health` tidak digunakan dalam versi ini.
+
 ## Instalasi
+
 1. Backup folder HaloKids dan database `halokids_db`.
-2. Jangan salin `.env.example` menjadi `.env` jika `.env` lama sudah benar; pertahankan `.env` lama.
-3. Pastikan `.env` memiliki `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, dan opsional `FRONTEND_ORIGINS`.
-4. Aktifkan venv lalu: `python -m pip install -r requirements.txt`.
-5. Pasang Tesseract OCR pada Windows untuk scan gambar/PDF; atau set `TESSERACT_CMD` ke path `tesseract.exe`.
-6. Periksa migration: `alembic current`.
-7. Jika database lama sudah di-stamp pada `4e754c9ff4c4`, jalankan `alembic upgrade head` agar kolom donasi barang ditambahkan.
-8. Jika database kosong, `alembic upgrade head` dapat membuat baseline kemudian menambahkan perubahan terbaru; atau gunakan `python scripts/create_tables.py` untuk membuat tabel dari metadata.
+2. Pertahankan file `.env` lama jika konfigurasinya masih benar.
+3. Pastikan `.env` memiliki `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`, dan `ACCESS_TOKEN_EXPIRE_MINUTES`. `FRONTEND_ORIGINS` digunakan jika diperlukan.
+4. Aktifkan virtual environment, lalu jalankan `python -m pip install -r requirements.txt`.
+5. Pasang Tesseract OCR pada Windows untuk pemrosesan gambar/PDF hasil scan, atau atur `TESSERACT_CMD` ke lokasi `tesseract.exe`.
+6. Periksa migration dengan `alembic current`.
+7. Jika database lama sudah berada pada revision `4e754c9ff4c4`, jalankan `alembic upgrade head` sesuai kondisi migration project.
+8. Jika database kosong, ikuti petunjuk migration atau gunakan `python scripts/create_tables.py` sesuai konfigurasi project.
 9. Jalankan `uvicorn app.main:app --reload`.
 10. Buka `http://127.0.0.1:8000/docs`.
 
-## Catatan database
-Migration baru tidak membuat tabel baru. Jumlah tabel inti tetap 10; perubahan donasi hanya menambah kolom pada tabel `donasi`. Jangan menjalankan DROP DATABASE untuk pemasangan paket.
+## Catatan Database
+
+Migration terbaru terkait donasi barang menambahkan kolom yang dibutuhkan pada tabel `donasi`. Jangan menjalankan `DROP DATABASE` untuk pemasangan paket. Selalu backup database sebelum menjalankan migration.
 
 ## Testing
-Jalankan `pytest tests` setelah dependency terpasang. Pengujian lokal/SQLite di paket tidak menggantikan pengujian akhir menggunakan MySQL dan Windows pada komputer project.
+
+Jalankan:
+
+`pytest tests`
+
+Pengujian lokal atau SQLite tidak menggantikan pengujian akhir menggunakan MySQL, Windows, Tesseract, dan frontend pada komputer project.
+
+Pastikan seluruh endpoint yang masih digunakan berjalan normal setelah penghapusan chatbot.
