@@ -164,7 +164,25 @@ def login(client, email, password):
 def make_png(lines):
     image = Image.new("RGB", (1200, 500), "white")
     draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 34)
+
+    font_candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/ARIAL.TTF",
+        "C:/Windows/Fonts/calibri.ttf",
+        "C:/Windows/Fonts/calibri.ttf",
+    ]
+    font = None
+    for candidate in font_candidates:
+        try:
+            font = ImageFont.truetype(candidate, 34)
+            break
+        except OSError:
+            continue
+
+    if font is None:
+        font = ImageFont.load_default()
+
     for index, line in enumerate(lines):
         draw.text((30, 30 + index * 60), line, fill="black", font=font)
     buffer = io.BytesIO()

@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.db.models.adoption import PengajuanAdopsi
 from app.db.models.donation import Donasi
 from app.db.models.panti import PantiAsuhan
 from app.db.models.report import LaporanPengaduan
@@ -12,6 +13,7 @@ from app.db.models.report import LaporanPengaduan
 
 def get_public_statistics(db: Session) -> dict:
     total_panti = db.query(func.count(PantiAsuhan.id)).scalar() or 0
+    total_adoptions = db.query(func.count(PengajuanAdopsi.id)).scalar() or 0
     accredited = (
         db.query(func.count(PantiAsuhan.id))
         .filter(
@@ -51,6 +53,7 @@ def get_public_statistics(db: Session) -> dict:
 
     return {
         "total_panti": int(total_panti),
+        "total_adopsi": int(total_adoptions),
         "panti_dengan_status_akreditasi": int(accredited),
         "persentase_panti_dengan_status_akreditasi": percentage,
         "total_pengaduan": int(total_reports),
@@ -61,6 +64,7 @@ def get_public_statistics(db: Session) -> dict:
         "anak_dalam_rehabilitasi": None,
         "rata_rata_respons_jam": None,
         "catatan": [
+            "Total adopsi menghitung seluruh pengajuan adopsi, termasuk yang masih diproses atau ditolak.",
             "Persentase dihitung dari panti yang memiliki status akreditasi pada database.",
             "Kasus ditangani berarti status pengaduan diproses atau selesai.",
             "Nominal donasi hanya menjumlahkan donasi uang yang sudah terverifikasi.",

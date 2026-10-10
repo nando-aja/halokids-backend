@@ -410,9 +410,16 @@ def create_donation(
 
     db.add(item)
 
-    message = (
-        f"Donasi baru untuk panti #{panti.id} menunggu verifikasi."
-        + (" Bukti transfer perlu dicek manual." if needs_manual_check else "")
+    panti_message = f"Donasi baru untuk panti #{panti.id} menunggu verifikasi."
+    panti_manual_message = (
+        f"Donasi #{item.id} untuk panti #{panti.id} perlu dicek manual."
+        if needs_manual_check
+        else None
+    )
+    admin_message = (
+        f"Donasi #{item.id} perlu dicek manual untuk memastikan nominal transfer sesuai."
+        if needs_manual_check
+        else f"Donasi #{item.id} baru masuk dan menunggu verifikasi."
     )
 
     if panti.id_admin_pengelola:
@@ -420,12 +427,19 @@ def create_donation(
             db,
             panti.id_admin_pengelola,
             "Donasi Baru",
-            message,
+            panti_message,
         )
+        if panti_manual_message:
+            create_notification(
+                db,
+                panti.id_admin_pengelola,
+                "Cek Manual Donasi",
+                panti_manual_message,
+            )
 
     admin_users = db.query(User).filter(User.peran == "admin").all()
     for admin in admin_users:
-        create_notification(db, admin.id, "Donasi Baru", message)
+        create_notification(db, admin.id, "Donasi Baru", admin_message)
 
     db.commit()
     db.refresh(item)

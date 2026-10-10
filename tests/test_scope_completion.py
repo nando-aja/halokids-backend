@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.db.database import Base
+from app.db.models.adoption import PengajuanAdopsi
 from app.db.models.panti import PantiAsuhan
 from app.db.models.report import LaporanPengaduan
 from app.db.models.donation import Donasi
@@ -74,9 +75,17 @@ def test_public_statistics_uses_only_database_values():
             PantiAsuhan(nama_panti="Panti B", alamat="Surabaya", status_akreditasi=None, jumlah_anak_asuh=5),
         ])
         db.add(LaporanPengaduan(id_user=None, kode_tiket="HK-20261004-ABC12345", isi_laporan="laporan kekerasan", jenis_laporan="kekerasan", status="selesai"))
+        db.add(PengajuanAdopsi(
+            id_user=1,
+            nama_pemohon="Budi Santoso",
+            tanggal_lahir_pemohon=date(1985, 5, 15),
+            tanggal_pernikahan=date(2010, 8, 20),
+            status="diajukan",
+        ))
         db.commit()
         stats = get_public_statistics(db)
         assert stats["total_panti"] == 2
+        assert stats["total_adopsi"] == 1
         assert stats["panti_dengan_status_akreditasi"] == 1
         assert stats["kasus_pengaduan_ditangani"] == 1
         assert stats["anak_dalam_rehabilitasi"] is None

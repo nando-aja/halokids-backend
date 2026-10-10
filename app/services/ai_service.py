@@ -28,6 +28,11 @@ try:
 except ImportError:  # pragma: no cover
     pytesseract = None
 
+try:
+    from rapidocr_onnxruntime import RapidOCR
+except ImportError:  # pragma: no cover
+    RapidOCR = None
+
 
 def configure_tesseract() -> None:
     """Gunakan TESSERACT_CMD atau lokasi instalasi Windows yang umum."""
@@ -272,6 +277,23 @@ class COTADocumentAgent:
 AGENT = COTADocumentAgent()
 
 
+def _rapidocr_extract(path: Path) -> tuple[str, str | None]:
+    if RapidOCR is None:
+        return "", "RapidOCR belum tersedia"
+
+    try:
+        detector = RapidOCR()
+        result, _ = detector(str(path))
+        if not result:
+            return "", None
+
+        lines = [item[1] for item in result if item and len(item) > 1 and item[1]]
+        text = "\n".join(lines).strip()
+        return text, None
+    except Exception as exc:
+        return "", str(exc)
+
+
 def extract_text(path: Path) -> tuple[str, str, str | None]:
     suffix = path.suffix.lower()
 
@@ -289,40 +311,50 @@ def extract_text(path: Path) -> tuple[str, str, str | None]:
                 if text:
                     return text, "pdf_text", None
 
-                if pytesseract is None or Image is None:
-                    return "", "pdf_text_empty", "Tesseract/Pillow belum tersedia untuk OCR PDF scan"
-
                 ocr_pages: list[str] = []
-                for page in document:
-                    pixmap = page.get_pixmap(
-                        matrix=fitz.Matrix(2, 2),
-                        alpha=False,
-                    )
-                    image = Image.frombytes(
-                        "RGB",
-                        [pixmap.width, pixmap.height],
-                        pixmap.samples,
-                    )
-                    ocr_pages.append(
-                        pytesseract.image_to_string(image)
-                    )
+                if pytesseract is not None and Image is not None:
+                    for page in document:
+                        pixmap = page.get_pixmap(
+                            matrix=fitz.Matrix(2, 2),
+                            alpha=False,
+                        )
+                        image = Image.frombytes(
+                            "RGB",
+                            [pixmap.width, pixmap.height],
+                            pixmap.samples,
+                        )
+                        ocr_pages.append(
+                            pytesseract.image_to_string(image)
+                        )
+                    ocr_text = "\n".join(ocr_pages).strip()
+                    if ocr_text:
+                        return ocr_text, "pdf_ocr", None
 
-                ocr_text = "\n".join(ocr_pages).strip()
-                return ocr_text, "pdf_ocr", None
+                rapid_text, rapid_error = _rapidocr_extract(path)
+                if rapid_text:
+                    return rapid_text, "pdf_rapidocr", None
+                return "", "pdf_ocr_unavailable", rapid_error or "Tesseract/Pillow/RapidOCR tidak tersedia untuk OCR PDF scan"
         except Exception as exc:
             return "", "pdf_error", str(exc)
 
     if suffix in {".jpg", ".jpeg", ".png"}:
-        if pytesseract is None or Image is None:
-            return "", "image_ocr_unavailable", "Tesseract/Pillow belum tersedia"
-
         try:
-            text = pytesseract.image_to_string(
-                Image.open(path)
-            ).strip()
-            return text, "image_ocr", None
+            if pytesseract is not None and Image is not None:
+                text = pytesseract.image_to_string(
+                    Image.open(path)
+                ).strip()
+                if text:
+                    return text, "image_ocr", None
         except Exception as exc:
-            return "", "image_ocr_error", str(exc)
+            last_error = str(exc)
+        else:
+            last_error = "Tesseract/Pillow belum tersedia"
+
+        rapid_text, rapid_error = _rapidocr_extract(path)
+        if rapid_text:
+            return rapid_text, "image_rapidocr", None
+
+        return "", "image_ocr_unavailable", rapid_error or last_error
 
     return "", "unsupported", "Format file tidak didukung"
 
@@ -362,7 +394,12 @@ def validate_document_content(document_type: str, text: str) -> dict:
         }
 
     lowered = normalized_lower(text)
-    matched_keywords = [keyword for keyword in keywords if keyword in lowered]
+    compact = "".join(lowered.split())
+    matched_keywords = []
+    for keyword in keywords:
+        compact_keyword = "".join(keyword.split())
+        if keyword in lowered or compact_keyword in compact:
+            matched_keywords.append(keyword)
     # Threshold konservatif: satu atau dua istilah yang relevan sudah cukup untuk
     # melewati validator heuristik, tetapi hasil tetap ditampilkan sebagai alat bantu.
     minimum_hits = 1

@@ -180,6 +180,10 @@ def save_upload_file(
 
         file_bytes = b"".join(chunks)
 
+        local_path = (BASE_DIR / "storage" / folder_name / filename).resolve()
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_bytes(file_bytes)
+
         content_type = (
             file.content_type
             or guess_type(file.filename)[0]
@@ -347,11 +351,36 @@ def list_folder_files(
     prefix: str = "",
 ) -> list[dict]:
     """
-    Mengambil daftar file dari Supabase Storage.
+    Mengambil daftar file dari local storage terlebih dahulu agar fitur berjalan
+    tanpa tergantung sepenuhnya pada Supabase, lalu fallback ke Supabase bila perlu.
     """
 
     if folder_name not in STORAGE_FOLDERS:
         return []
+
+    local_dir = (BASE_DIR / "storage" / folder_name).resolve()
+    if local_dir.is_dir():
+        files: list[dict] = []
+        seen: set[str] = set()
+        for path in sorted(local_dir.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
+            if not path.is_file():
+                continue
+            filename = path.name
+            if not filename.startswith(prefix):
+                continue
+            relative_path = (Path("storage") / folder_name / filename).as_posix()
+            if relative_path in seen:
+                continue
+            seen.add(relative_path)
+            files.append(
+                {
+                    "file": relative_path,
+                    "nama_file": filename,
+                    "tanggal_unggah": path.stat().st_mtime,
+                }
+            )
+        if files:
+            return files
 
     bucket_name = _get_bucket_name(folder_name)
 
@@ -372,6 +401,7 @@ def list_folder_files(
         return []
 
     result = []
+    seen: set[str] = set()
 
     for item in items:
         filename = item.get("name")
@@ -403,6 +433,10 @@ def list_folder_files(
             / folder_name
             / filename
         ).as_posix()
+
+        if relative_path in seen:
+            continue
+        seen.add(relative_path)
 
         result.append(
             {
