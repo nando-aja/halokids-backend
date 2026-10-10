@@ -25,7 +25,7 @@ from app.schemas.notification import NotificationResponse
 from app.schemas.panti import PantiCreate, PantiResponse, PantiUpdate
 from app.schemas.report import ReportResponse, ReportStatus
 from app.schemas.user import UserResponse, UserRoleUpdate
-from app.schemas.volunteer import VolunteerResponse, VolunteerStatus
+from app.schemas.volunteer import VolunteerResponse, VolunteerStatus, VolunteerUpdate
 from app.services.ai_service import analyze_adoption_documents, analyze_transfer_proof
 from app.services import visit_calendar
 from app.services.notification_service import (
@@ -534,6 +534,46 @@ def update_volunteer_status(
     return item
 
 
+@router.put(
+    "/relawan/{volunteer_id}",
+    response_model=VolunteerResponse,
+)
+def update_volunteer(
+    volunteer_id: int,
+    data: VolunteerUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Relawan).filter(Relawan.id == volunteer_id).first()
+    if item is None:
+        raise HTTPException(404, "Data relawan tidak ditemukan")
+    updates = data.model_dump(exclude_unset=True)
+    if updates.get("id_panti") is not None:
+        panti = db.query(PantiAsuhan).filter(PantiAsuhan.id == updates["id_panti"]).first()
+        if panti is None:
+            raise HTTPException(404, "Panti tujuan tidak ditemukan")
+        updates.setdefault("panti_tujuan", panti.nama_panti)
+    for key, value in updates.items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/relawan/{volunteer_id}")
+def delete_volunteer(
+    volunteer_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Relawan).filter(Relawan.id == volunteer_id).first()
+    if item is None:
+        raise HTTPException(404, "Data relawan tidak ditemukan")
+    db.delete(item)
+    db.commit()
+    return {"message": "Data relawan berhasil dihapus", "id": volunteer_id}
+
+
 @router.get("/dashboard/stats")
 def get_dashboard_stats(
     start_date: date | None = None,
@@ -616,7 +656,7 @@ def upload_laporan_pengawasan(
         "message": "Laporan pengawasan berhasil diupload",
         "id_panti": panti_id,
         "file_laporan": path,
-        "catatan": "File disimpan di local storage dan dikelompokkan per panti lewat prefix nama file.",
+        "catatan": "File disimpan di Supabase Storage dan dikelompokkan per panti lewat prefix nama file.",
     }
 
 

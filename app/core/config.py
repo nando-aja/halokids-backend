@@ -21,10 +21,10 @@ class Settings(BaseSettings):
     )
 
     # Supabase Storage
-    SUPABASE_URL: str
-    SUPABASE_PUBLISHABLE_KEY: str
-    SUPABASE_SECRET_KEY: str
-    SUPABASE_JWKS_URL: str
+    SUPABASE_URL: str = ""
+    SUPABASE_PUBLISHABLE_KEY: str = ""
+    SUPABASE_SECRET_KEY: str = ""
+    SUPABASE_JWKS_URL: str = ""
 
     SUPABASE_PRIVATE_BUCKET: str = "halokids-private"
     SUPABASE_PUBLIC_BUCKET: str = "halokids-public"

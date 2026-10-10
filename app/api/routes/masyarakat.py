@@ -83,7 +83,7 @@ def validate_initial_documents(
         raise HTTPException(
             status_code=422,
             detail={
-                "message": "Ada file yang belum ditemukan di local storage.",
+                "message": "Ada file yang belum ditemukan di Supabase Storage.",
                 "file_tidak_ditemukan": missing_files,
             },
         )
@@ -360,7 +360,7 @@ def create_donation(
             raise HTTPException(422, "Bukti transfer harus diunggah melalui /api/upload/bukti-transfer")
 
         if not stored_file_exists(data.bukti_transfer):
-            raise HTTPException(422, "Bukti transfer tidak ditemukan di local storage")
+            raise HTTPException(422, "Bukti transfer tidak ditemukan di Supabase Storage")
 
         item.bukti_transfer = data.bukti_transfer
 
@@ -473,7 +473,7 @@ def analyze_transfer_proof(
     ):
         raise HTTPException(
             422,
-            "Bukti transfer tidak ditemukan di local storage",
+            "Bukti transfer tidak ditemukan di Supabase Storage",
         )
 
     return run_transfer_proof_analysis(
@@ -492,24 +492,32 @@ def apply_volunteer(
     current_user: User = Depends(require_masyarakat),
     db: Session = Depends(get_db),
 ):
-    volunteer_data = data
+    if not data.dokumen_identitas.startswith("storage/identitas_relawan/") or not stored_file_exists(data.dokumen_identitas):
+        raise HTTPException(422, "Dokumen identitas relawan tidak ditemukan di storage")
 
-    if not stored_file_exists(
-        volunteer_data.dokumen_identitas
-    ) or not volunteer_data.dokumen_identitas.startswith(
-        "storage/identitas_relawan/"
-    ):
-        raise HTTPException(
-            422,
-            "Dokumen identitas relawan tidak ditemukan di storage",
-        )
+    if data.id_panti is not None:
+        panti = db.query(PantiAsuhan).filter(PantiAsuhan.id == data.id_panti).first()
+        if panti is None:
+            raise HTTPException(404, "Panti tujuan tidak ditemukan")
+        panti_tujuan = data.panti_tujuan or panti.nama_panti
+    else:
+        panti_tujuan = data.panti_tujuan
 
     item = Relawan(
         id_user=current_user.id,
-        dokumen_identitas=volunteer_data.dokumen_identitas,
+        dokumen_identitas=data.dokumen_identitas,
         status="menunggu",
+        nama=data.nama,
+        nomor_hp=data.nomor_hp,
+        alamat=data.alamat,
+        usia=data.usia,
+        bidang=data.bidang,
+        panti_tujuan=panti_tujuan,
+        id_panti=data.id_panti,
+        tanggal=data.tanggal,
+        sesi_waktu=data.sesi_waktu,
+        tujuan_kerelawanan=data.tujuan_kerelawanan,
     )
-
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -524,12 +532,7 @@ def get_my_volunteer_registrations(
     current_user: User = Depends(require_masyarakat),
     db: Session = Depends(get_db),
 ):
-    return (
-        db.query(Relawan)
-        .filter(Relawan.id_user == current_user.id)
-        .order_by(Relawan.id.desc())
-        .all()
-    )
+    return db.query(Relawan).filter(Relawan.id_user == current_user.id).order_by(Relawan.id.desc()).all()
 
 
 @router.get(

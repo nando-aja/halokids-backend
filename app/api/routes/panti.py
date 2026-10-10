@@ -22,7 +22,7 @@ from app.services.notification_service import (
     mark_all_notifications_read,
     mark_notification_read,
 )
-from app.services.storage import get_storage_absolute_path, save_upload_file
+from app.services.storage import delete_stored_file, get_storage_absolute_path, save_upload_file
 
 
 router = APIRouter()
@@ -308,6 +308,28 @@ def get_laporan_dana(
         .order_by(LaporanDana.id.desc())
         .all()
     )
+
+
+@router.delete("/laporan-dana/{laporan_id}")
+def delete_laporan_dana(
+    laporan_id: int,
+    current_user: User = Depends(require_pengelola_panti),
+    db: Session = Depends(get_db),
+):
+    panti = get_managed_panti(db, current_user)
+    item = (
+        db.query(LaporanDana)
+        .filter(LaporanDana.id == laporan_id, LaporanDana.id_panti == panti.id)
+        .first()
+    )
+    if item is None:
+        raise HTTPException(404, "Laporan dana tidak ditemukan")
+
+    # Jangan menghapus baris jika file remote gagal dihapus.
+    delete_stored_file(item.file_laporan)
+    db.delete(item)
+    db.commit()
+    return {"message": "Laporan dana berhasil dihapus"}
 
 
 @router.post(

@@ -8,11 +8,20 @@ from app.db.models.dana import LaporanDana
 from app.db.models.volunteer import Relawan
 from app.db.models.gallery import GaleriPanti
 from app.db.models.notification import Notifikasi
+from app.db.models.refresh_token import AuthRefreshToken
 
 __all__ = [
     "User",
     "PantiAsuhan",
     "PengajuanAdopsi",
+    "LaporanPengaduan",
+    "Donasi",
+    "WishlistPanti",
+    "LaporanDana",
+    "Relawan",
+    "GaleriPanti",
+    "Notifikasi",
+    "AuthRefreshToken"
     "LaporanPengaduan",
     "Donasi",
     "WishlistPanti",

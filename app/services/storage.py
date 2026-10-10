@@ -351,7 +351,7 @@ def list_folder_files(
     prefix: str = "",
 ) -> list[dict]:
     """
-    Mengambil daftar file dari local storage terlebih dahulu agar fitur berjalan
+    Mengambil daftar file dari Supabase Storage terlebih dahulu agar fitur berjalan
     tanpa tergantung sepenuhnya pada Supabase, lalu fallback ke Supabase bila perlu.
     """
 
@@ -452,3 +452,27 @@ def list_folder_files(
     )
 
     return result
+
+def delete_stored_file(relative_path: str) -> None:
+    """Delete a stored object and its local cache, if present."""
+    bucket_name, object_path = _get_object_path(relative_path)
+    if supabase is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Supabase Storage belum dikonfigurasi",
+        )
+    try:
+        supabase.storage.from_(bucket_name).remove([object_path])
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gagal menghapus file dari Supabase Storage",
+        ) from exc
+
+    local_path = (BASE_DIR / relative_path).resolve()
+    storage_root = (BASE_DIR / "storage").resolve()
+    if storage_root not in local_path.parents:
+        raise HTTPException(status_code=400, detail="Path file tidak valid")
+    local_path.unlink(missing_ok=True)
+    cache_path = _get_cache_path(relative_path)
+    cache_path.unlink(missing_ok=True)

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 class PublicStatisticsResponse(BaseModel):
     total_panti: int = Field(ge=0)
     total_adopsi: int = Field(ge=0)
+    total_relawan: int = Field(ge=0)
     panti_dengan_status_akreditasi: int = Field(ge=0)
     persentase_panti_dengan_status_akreditasi: float = Field(ge=0, le=100)
     total_pengaduan: int = Field(ge=0)

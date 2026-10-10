@@ -9,6 +9,7 @@ from app.db.models.adoption import PengajuanAdopsi
 from app.db.models.donation import Donasi
 from app.db.models.panti import PantiAsuhan
 from app.db.models.report import LaporanPengaduan
+from app.db.models.volunteer import Relawan
 
 
 def get_public_statistics(db: Session) -> dict:
@@ -33,6 +34,7 @@ def get_public_statistics(db: Session) -> dict:
     )
 
     total_donations = db.query(func.count(Donasi.id)).scalar() or 0
+    total_volunteers = db.query(func.count(Relawan.id)).scalar() or 0
     total_money = (
         db.query(func.coalesce(func.sum(Donasi.jumlah_nominal), 0))
         .filter(
@@ -54,6 +56,7 @@ def get_public_statistics(db: Session) -> dict:
     return {
         "total_panti": int(total_panti),
         "total_adopsi": int(total_adoptions),
+        "total_relawan": int(total_volunteers),
         "panti_dengan_status_akreditasi": int(accredited),
         "persentase_panti_dengan_status_akreditasi": percentage,
         "total_pengaduan": int(total_reports),
@@ -68,6 +71,6 @@ def get_public_statistics(db: Session) -> dict:
             "Persentase dihitung dari panti yang memiliki status akreditasi pada database.",
             "Kasus ditangani berarti status pengaduan diproses atau selesai.",
             "Nominal donasi hanya menjumlahkan donasi uang yang sudah terverifikasi.",
-            "Data anak dalam rehabilitasi dan rata-rata waktu respons belum tersedia pada schema 10 tabel.",
+            "Data anak dalam rehabilitasi dan rata-rata waktu respons belum tersedia pada schema inti.",
         ],
     }
